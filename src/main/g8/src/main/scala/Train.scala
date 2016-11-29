@@ -1,7 +1,11 @@
 package $organization$.$name;format="lower,word"$
 
+import org.apache.spark.mllib.linalg.Vectors
+import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.types.{DoubleType, IntegerType, StructField, StructType}
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration
 import org.deeplearning4j.nn.conf.layers.DenseLayer
@@ -9,6 +13,9 @@ import org.deeplearning4j.nn.conf.layers.OutputLayer
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
+import org.deeplearning4j.spark.impl.multilayer.SparkDl4jMultiLayer
+import org.deeplearning4j.spark.impl.paramavg.ParameterAveragingTrainingMaster
+import org.deeplearning4j.spark.util.MLLibUtil
 import org.deeplearning4j.util.ModelSerializer
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.dataset.DataSet
@@ -89,8 +96,6 @@ object Train {
   def main(args: Array[String]): Unit = {
     val conf = new SparkConf().setAppName("$name;format="lower,word"$-train")
     val sc = new SparkContext(conf)
-    val rootLogger = Logger.getRootLogger
-    rootLogger.setLevel(Level.INFO)
 
     TrainConfig.parse(args) match {
       case Some(config) =>
@@ -154,6 +159,8 @@ object Train {
     val sparkNet = new SparkDl4jMultiLayer(sc, conf, tm)
 
        
+    val train = MLLibUtil.fromLabeledPoint(sc, irisPoints, 3)
+    
     for (i <- 0 until c.nEpochs) {
       sparkNet.fit(train.toJavaRDD())
       println(s"Finished epoch $"$"$i.")
