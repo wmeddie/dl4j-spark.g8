@@ -1,14 +1,15 @@
 package $organization$.$name;format="lower,word"$
 
-import org.deeplearning4j.eval.Evaluation
+import org.apache.spark.sql.SQLContext
+import org.apache.spark.{SparkConf, SparkContext}
+import org.deeplearning4j.spark.impl.multilayer.SparkDl4jMultiLayer
+import org.deeplearning4j.spark.impl.paramavg.ParameterAveragingTrainingMaster
 import org.deeplearning4j.util.ModelSerializer
 import org.slf4j.LoggerFactory
 import scopt.OptionParser
 
-import java.io.File
-
 case class EvaluateConfig(
-  input: File = null,
+  input: String = "",
   modelName: String = ""
 )
 
@@ -16,7 +17,7 @@ object EvaluateConfig {
   val parser = new OptionParser[EvaluateConfig]("Evaluate") {
       head("$name;format="lower,word"$ Evaluate", "1.0")
 
-      opt[File]('i', "input")
+      opt[String]('i', "input")
         .required()
         .valueName("<file>")
         .action( (x, c) => c.copy(input = x) )
@@ -44,16 +45,21 @@ object Evaluate {
 
     EvaluateConfig.parse(args) match {
       case Some(config) =>
+        val batchSizePerWorker = 10
+
+        val tm = new ParameterAveragingTrainingMaster.Builder(batchSizePerWorker)
+          .averagingFrequency(5)
+          .workerPrefetchNumBatches(2)            //Async prefetching: 2 examples per worker
+          .batchSizePerWorker(batchSizePerWorker)
+          .build()
+
         val model = ModelSerializer.restoreMultiLayerNetwork(config.modelName)
+        val sparkNet = new SparkDl4jMultiLayer(sc, model, tm)
+
         val testData = DataIterators.irisCsv(config.input, sqlContext)
 
-        val eval = new Evaluation(3)
-        while (testData.hasNext) {
-            val ds = testData.next()
-            val output = model.output(ds.getFeatureMatrix)
-            eval.eval(ds.getLabels, output)
-        }
-        
+        val eval = sparkNet.evaluate(testData)
+
         log.info(eval.stats())
 
       case _ =>
