@@ -65,5 +65,7 @@ object Evaluate {
       case _ =>
         log.error("Invalid arguments.")
     }
+
+    sc.stop()
   }
 }

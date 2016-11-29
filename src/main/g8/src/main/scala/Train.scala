@@ -79,6 +79,8 @@ object Train {
       case _ =>
         log.error("Invalid arguments.")
     }
+
+    sc.stop()
   }
   
   private def train(c: TrainConfig, sc: SparkContext): Unit = {
