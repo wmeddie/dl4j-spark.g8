@@ -156,7 +156,7 @@ object Train {
        
     for (i <- 0 until c.nEpochs) {
       sparkNet.fit(train.toJavaRDD())
-      println(s"Finished epoch $i.")
+      println(s"Finished epoch $"$"$i.")
     }
 
     tm.deleteTempFiles(sc)
