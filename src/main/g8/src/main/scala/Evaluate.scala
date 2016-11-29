@@ -38,11 +38,14 @@ object Evaluate {
   private val log = LoggerFactory.getLogger(getClass)
 
   def main(args: Array[String]): Unit = {
+    val conf = new SparkConf().setAppName("$name;format="lower,word"$-evaluate")
+    val sc = new SparkContext(conf)
+    val sqlContext = new SQLContext(sc)
+
     EvaluateConfig.parse(args) match {
       case Some(config) =>
         val model = ModelSerializer.restoreMultiLayerNetwork(config.modelName)
-        val (testData, normalizer) = DataIterators.irisCsv(config.input)
-        normalizer.load((1 to 4).map(j => new File(config.modelName + s".norm$"$"$j")):_*)
+        val testData = DataIterators.irisCsv(config.input, sqlContext)
 
         val eval = new Evaluation(3)
         while (testData.hasNext) {

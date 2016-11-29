@@ -1,37 +1,61 @@
 package $organization$.$name;format="lower,word"$
 
-import org.datavec.api.records.reader.impl.csv.CSVRecordReader
-import org.datavec.api.split.FileSplit
-import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator
-import org.nd4j.linalg.dataset.api.preprocessor.DataNormalization
-import org.nd4j.linalg.dataset.api.preprocessor.NormalizerStandardize
 
-import java.io.File
+import org.apache.spark.api.java.JavaRDD
+import org.apache.spark.mllib.linalg.Vectors
+import org.apache.spark.mllib.regression.LabeledPoint
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.types.{DoubleType, IntegerType, StructField, StructType}
+import org.deeplearning4j.spark.util.MLLibUtil
+import org.nd4j.linalg.dataset.DataSet
 
 object DataIterators {
-  def irisCsv(f: File): (RecordReaderDataSetIterator, DataNormalization)  = {
-    val recordReader = new CSVRecordReader(0, ",")
-    recordReader.initialize(new FileSplit(f))
+  private val irisSchema = StructType(
+    Array(
+      StructField("c1", DoubleType, nullable = false),
+      StructField("c2", DoubleType, nullable = false),
+      StructField("c3", DoubleType, nullable = false),
+      StructField("c4", DoubleType, nullable = false),
+      StructField("label", IntegerType, nullable = false)
+    )
+  )
 
-    val labelIndex = 4;     //5 values in each row of the iris.txt CSV: 4 input features followed by an integer label (class) index. Labels are the 5th value (index 4) in each row
-    val numClasses = 3;     //3 classes (types of iris flowers) in the iris data set. Classes have integer values 0, 1 or 2
-    val batchSize = 50;    //Iris data set: 150 examples total.
+  def irisCsv(path: String, sqlContext: SQLContext): JavaRDD[DataSet]  = {
+    val csvOptions = Map(
+      "header" -> "false",
+      "inferSchema" -> "false",
+      "delimiter" -> ",",
+      "escape" -> null,
+      "parserLib" -> "univocity",
+      "mode" -> "DROPMALFORMED"
+    )
 
-    val iterator = new RecordReaderDataSetIterator(
-      recordReader,
-      batchSize,
-      labelIndex,
-      numClasses)
-    
-    val normalizer = new NormalizerStandardize()
+    val irisData = sqlContext.load(
+      source = "com.databricks.spark.csv",
+      schema = irisSchema,
+      options = csvOptions + ("path" -> path)
+    ).cache()
 
-    while (iterator.hasNext) {
-      normalizer.fit(iterator.next())
-    }
-    iterator.reset()
+    irisData.registerTempTable("iris")
 
-    iterator.setPreProcessor(normalizer)
+    val irisPoints = sqlContext.sql(
+      """
+        |SELECT
+        | c1,
+        | c2,
+        | c3,
+        | c4,
+        | label
+        |FROM iris
+      """.stripMargin
+    ).map(row => {
+      LabeledPoint(
+        row.getInt(4),
+        Vectors.dense(row.getDouble(0), row.getDouble(1), row.getDouble(2), row.getDouble(3))
+      )
+    }).cache()
 
-    (iterator, normalizer)
+    MLLibUtil.fromLabeledPoint(sqlContext.sparkContext, irisPoints, 3)
   }
 }
