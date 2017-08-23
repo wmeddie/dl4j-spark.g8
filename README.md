@@ -5,7 +5,7 @@ You use this template by first installing sbt and running  `sbt new wmeddie/dl4j
 This template includes:
 
 * sbt 0.13.13
-* [Spark](https://github.com/apache/spark) Spark 1.3.1 (Should work for up to 1.6)
+* [Spark](https://github.com/apache/spark) Spark 1.6
 * [DataVec](https://github.com/deeplearning4j/DataVec) For data ETL and vectorization.
 * [DeepLearning4J](https://github.com/deeplearning4j/deeplearning4j) for the actual Deep Learning.
 * [ND4J](https://github.com/deeplearning4j/nd4j) the SMID/GPU accelerated DL4J backend library.
