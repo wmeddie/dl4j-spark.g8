@@ -23,7 +23,7 @@ libraryDependencies += "org.deeplearning4j" % "deeplearning4j-cuda-8.0" % "0.9.1
 
 libraryDependencies += "org.deeplearning4j" % "deeplearning4j-core" % "0.9.1"
 
-libraryDependencies += "org.deeplearning4j" %% "dl4j-spark" % "0.9.1" intransitive()
+libraryDependencies += "org.deeplearning4j" %% "dl4j-spark1" % "0.9.1" intransitive()
 
 libraryDependencies += "com.github.scopt" %% "scopt" % "3.5.0"
 
